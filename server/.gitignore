@@ -1,0 +1,13 @@
+node_modules
+dist
+.env
+
+# Prisma Client is generated from prisma/schema.prisma (npm run db:generate)
+src/generated
+
+# Local file-storage fallback output and test scratch dirs
+uploads/
+var/
+.tmp-test-uploads/
+
+/src/generated/prisma

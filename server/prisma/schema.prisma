@@ -1,0 +1,227 @@
+// Kamdhenu Sales Comparator — database schema.
+// Direct translation of REBUILD_BLUEPRINT §2 (PostgreSQL DDL).
+//
+// Not expressible in the Prisma schema language and therefore applied as raw SQL
+// inside prisma/migrations/*_init/migration.sql:
+//   - CREATE EXTENSION pgcrypto (for gen_random_uuid())
+//   - partial UNIQUE indexes (... WHERE deleted_at IS NULL, ... WHERE role = 'admin')
+//   - the chk_tds_file CHECK constraint on competitor_products
+// See README "Database" for the drift caveat this implies.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SpecSource {
+  tds_ai
+  manual
+
+  @@map("spec_source")
+}
+
+enum UserRole {
+  rm
+  admin
+
+  @@map("user_role")
+}
+
+// ========================= REFERENCE / CATALOG =========================
+
+model Substrate {
+  id        String   @id // stable slug e.g. 'concrete'
+  name      String
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tileTypes SubstrateTileMap[]
+
+  @@map("substrates")
+}
+
+model TileType {
+  id        String   @id // 'vitrified'
+  name      String
+  category  String? // porcelain / ceramic / natural_stone ...
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  sizes      TileTypeSize[]
+  substrates SubstrateTileMap[]
+
+  @@map("tile_types")
+}
+
+model TileTypeSize {
+  id         BigInt @id @default(autoincrement())
+  tileTypeId String @map("tile_type_id")
+  sizeLabel  String @map("size_label") // '24 x 48 in'
+
+  tileType TileType @relation(fields: [tileTypeId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tileTypeId, sizeLabel], map: "tile_type_sizes_tile_type_id_size_label_key")
+  @@map("tile_type_sizes")
+}
+
+/// Which tile types apply to a substrate.
+model SubstrateTileMap {
+  substrateId String @map("substrate_id")
+  tileTypeId  String @map("tile_type_id")
+
+  substrate Substrate @relation(fields: [substrateId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tileType  TileType  @relation(fields: [tileTypeId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([substrateId, tileTypeId])
+  @@map("substrate_tile_map")
+}
+
+model ApplicationArea {
+  id        String @id // 'living_room'
+  name      String // 'Living Room'
+  sortOrder Int    @default(0) @map("sort_order")
+
+  @@map("application_areas")
+}
+
+// ========================= KAMDHENU PRODUCTS =========================
+
+model Product {
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code             String // 'K90'
+  name             String
+  description      String?
+  enClassification String?    @map("en_classification") // 'C2TE S1' etc.
+  applicationAreas String[]   @default([]) @map("application_areas")
+  technicalParams  Json       @default("{}") @map("technical_params") @db.JsonB // canonical 20-field set (§3)
+  isActive         Boolean    @default(true) @map("is_active")
+  deletedAt        DateTime?  @map("deleted_at") @db.Timestamptz(6) // soft delete
+  createdBy        String?    @map("created_by") @db.Uuid
+  updatedBy        String?    @map("updated_by") @db.Uuid
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // uq_products_code_active (UNIQUE (code) WHERE deleted_at IS NULL) -> raw SQL in the migration.
+  @@index([technicalParams(ops: JsonbOps)], map: "idx_products_params", type: Gin)
+  @@map("products")
+}
+
+// ========================= COMPETITORS =========================
+// The single source of truth for comparisons (fixes bug #1).
+
+model Competitor {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  slug      String // 'myk_laticrete'
+  isActive  Boolean   @default(true) @map("is_active")
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  products CompetitorProduct[]
+
+  // uq_competitors_slug_active (UNIQUE (slug) WHERE deleted_at IS NULL) -> raw SQL in the migration.
+  @@map("competitors")
+}
+
+/// Specs are captured ONCE at creation, two ways:
+///   'tds_ai' : admin uploads a TDS file, AI extracts the 20 params, admin confirms
+///   'manual' : admin types the params into the form
+/// No scheduler, no re-sync, no hashes, no review state machine. aiRawExtraction keeps
+/// the untouched AI output so a later data question can distinguish an AI mistake from
+/// an admin edit.
+model CompetitorProduct {
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  competitorId     String     @map("competitor_id") @db.Uuid
+  name             String
+  enClassification String?    @map("en_classification")
+  technicalParams  Json       @default("{}") @map("technical_params") @db.JsonB // final, admin-confirmed 20-field set
+  specSource       SpecSource @map("spec_source")
+  tdsFileUrl       String?    @map("tds_file_url") // object-storage reference (null if manual)
+  tdsFileName      String?    @map("tds_file_name") // original filename, for display/re-download
+  aiRawExtraction  Json?      @map("ai_raw_extraction") @db.JsonB // exactly what the AI returned, pre-edit
+  aiModel          String?    @map("ai_model") // model + version used, for audit
+  isActive         Boolean    @default(true) @map("is_active")
+  deletedAt        DateTime?  @map("deleted_at") @db.Timestamptz(6)
+  createdBy        String?    @map("created_by") @db.Uuid
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator    User?      @relation("CompetitorProductCreatedBy", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // uq_comp_products_name_active (UNIQUE (competitor_id, name) WHERE deleted_at IS NULL) -> raw SQL.
+  // chk_tds_file CHECK (spec_source <> 'tds_ai' OR tds_file_url IS NOT NULL)   -> raw SQL.
+  @@map("competitor_products")
+}
+
+// ========================= USERS & SESSIONS =========================
+// One table for both RM and admin (role column separates them).
+//   RM    : passwordless login via mobile_number.
+//   admin : Google OAuth; we store Google's stable subject id (google_sub), never a password.
+
+model User {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  role         UserRole
+  name         String?
+  email        String?
+  mobileNumber String?   @unique(map: "uq_users_mobile") @map("mobile_number") // RM login (null for admin)
+  googleSub    String?   @unique(map: "uq_users_google_sub") @map("google_sub") // Google subject id (null for RM)
+  avatarUrl    String?   @map("avatar_url") // optional, from Google profile
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  sessions           Session[]
+  competitorProducts CompetitorProduct[] @relation("CompetitorProductCreatedBy")
+
+  // The two @unique above are exactly equivalent to the DDL's
+  // "... WHERE <col> IS NOT NULL" partial indexes: Postgres unique indexes already
+  // treat NULLs as distinct.
+  // uq_users_email (UNIQUE (email) WHERE email IS NOT NULL AND role = 'admin') -> raw SQL.
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique(map: "uq_sessions_hash") @map("token_hash") // app-issued token, SHA-256 (never plaintext)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expiresAt], map: "idx_sessions_expiry")
+  @@map("sessions")
+}
+
+// ========================= AI CACHES =========================
+// cache_key includes a spec hash so edits naturally miss the cache;
+// is_fallback + expires_at stop fallbacks sticking.
+
+model PitchCache {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cacheKey   String    @unique(map: "uq_pitch_cache_key") @map("cache_key") // code|competitor|specHash|promptVer|variant
+  lines      Json      @db.JsonB // array of strings (max 3)
+  isFallback Boolean   @default(false) @map("is_fallback")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt  DateTime? @map("expires_at") @db.Timestamptz(6) // short TTL for fallbacks
+
+  @@map("pitch_cache")
+}
+
+model RecommendationCache {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cacheKey   String    @unique(map: "uq_reco_cache_key") @map("cache_key")
+  content    String
+  isFallback Boolean   @default(false) @map("is_fallback")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt  DateTime? @map("expires_at") @db.Timestamptz(6)
+
+  @@map("recommendation_cache")
+}
