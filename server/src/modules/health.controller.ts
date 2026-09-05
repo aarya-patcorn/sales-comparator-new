@@ -12,16 +12,21 @@ const pkg = require("../../package.json") as { version?: string };
 
 export const APP_VERSION: string = pkg.version ?? "0.0.0";
 
-/**
- * GET /api/health
- *
- * Reports liveness plus database connectivity. Returns 503 when the database is
- * unreachable so a load balancer takes the instance out of rotation instead of
- * routing traffic that will fail.
- */
-export async function getHealth(_req: Request, res: Response): Promise<void> {
-  let database: "up" | "down" = "up";
+function healthDetails() {
+  return {
+    version: APP_VERSION,
+    uptime: Math.round(process.uptime()),
+  };
+}
 
+/** GET /api/health/live — process-only check for container liveness. */
+export function getLiveness(_req: Request, res: Response): void {
+  res.status(200).json({ status: "ok", ...healthDetails() });
+}
+
+/** GET /api/health/ready — database check for traffic readiness. */
+export async function getReadiness(_req: Request, res: Response): Promise<void> {
+  let database: "up" | "down" = "up";
   try {
     await prisma.$queryRaw`SELECT 1`;
   } catch (error) {
@@ -31,8 +36,10 @@ export async function getHealth(_req: Request, res: Response): Promise<void> {
 
   res.status(database === "up" ? 200 : 503).json({
     status: database === "up" ? "ok" : "degraded",
-    version: APP_VERSION,
-    uptime: Math.round(process.uptime()),
+    ...healthDetails(),
     database,
   });
 }
+
+/** Backwards-compatible combined health endpoint. */
+export const getHealth = getReadiness;

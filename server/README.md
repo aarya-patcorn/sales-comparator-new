@@ -31,6 +31,97 @@ npm run dev                # http://localhost:4000
 curl http://localhost:4000/api/health
 ```
 
+## Deploy to Render
+
+The repository-root `render.yaml` is a Render Blueprint for staging. Applying
+it provisions the `kamdhenu-db-staging` managed Postgres database and the
+`kamdhenu-server-staging` Docker web service together. Render auto-wires the
+database's `connectionString` into `DATABASE_URL`; no database URL belongs in
+the Blueprint.
+
+Values marked `sync: false` are secrets. Enter them once in the Render service
+dashboard after the Blueprint is applied. The free database expires 30 days
+after creation, followed by a 14-day grace period before deletion; choose a
+paid database plan when staging data must persist long-term. The Blueprint
+deploys from `main` for now; every push to `main` auto-deploys the backend and
+admin services. Change its `branch` to a dedicated staging branch when one is
+available.
+
+### Staging deployment checklist
+
+1. In Render, create a new Blueprint from this repository and `render.yaml`.
+   It creates `kamdhenu-db-staging` and `kamdhenu-server-staging` together, and
+   wires the database connection into `DATABASE_URL` automatically.
+2. In the service Environment settings, add only these `sync: false` values:
+   `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `OPENAI_API_KEY`, `SUPABASE_URL`,
+   `SUPABASE_SERVICE_ROLE_KEY`, and `ADMIN_ALLOWLIST_EMAILS`. Do not paste
+   `DATABASE_URL`.
+3. Trigger the first deploy. `start:prod` runs `prisma migrate deploy` against
+   Render Postgres before starting the server, creating all tables.
+4. On staging or production, the boot seed skips sample catalog, product, and
+   competitor data and only upserts `ADMIN_ALLOWLIST_EMAILS`. This is guarded
+   by `APP_ENV`. Development keeps the full sample seed. If a manual one-off is
+   ever needed, run `npm run db:seed` from a Render shell or Job with the same
+   environment variables.
+5. Verify the service is ready:
+   `GET https://kamdhenu-server-staging.onrender.com/api/health/ready` should
+   return HTTP 200.
+
+The staging backend base URL is:
+`https://kamdhenu-server-staging.onrender.com`
+
+### Admin static site
+
+The same Blueprint also creates the Vite static site
+`kamdhenu-admin-staging`. Apply the updated Blueprint, then set these two
+build-time variables on the static service:
+
+- `VITE_API_URL=https://kamdhenu-server-staging.onrender.com`
+- `VITE_GOOGLE_CLIENT_ID=<your Google client ID>`
+
+Deploy the site after setting both values. The SPA fallback sends all paths to
+`index.html`, so React Router works on refresh. After Render assigns the site
+URL, keep the backend's `CORS_ORIGINS` value aligned with that admin URL and
+redeploy the backend after changing it.
+
+The staging admin URL is:
+`https://kamdhenu-admin-staging.onrender.com`
+
+## Staging URLs & config
+
+- Backend: `https://kamdhenu-server-staging.onrender.com`
+- Admin: `https://kamdhenu-admin-staging.onrender.com`
+- Google OAuth JavaScript origin to add: `https://kamdhenu-admin-staging.onrender.com`
+  (no trailing slash or path)
+- Backend `CORS_ORIGINS`: `https://kamdhenu-admin-staging.onrender.com`
+
+The backend reads `CORS_ORIGINS` as a comma-separated list and allows an exact
+match. Append the mobile/Expo origins later, separated by commas, then redeploy
+the backend so it reloads the environment.
+
+### Connect and verify staging
+
+1. Set the backend `CORS_ORIGINS` value in Render and redeploy the backend.
+2. In Google Cloud Console, add the exact admin origin above under the OAuth
+   client's **Authorized JavaScript origins**. Do not add a path or trailing `/`.
+3. Confirm the staging service has valid `SUPABASE_URL` and
+   `SUPABASE_SERVICE_ROLE_KEY`. Supabase is used server-side, so the admin
+   browser does not need a Supabase origin allow-list entry for this upload
+   flow. If Supabase dashboard CORS settings are enabled for any future direct
+   browser access, add the admin origin there too.
+4. Sign in at the staging admin with an active allow-listed Google account, load
+   Products, and add a competitor product using **Upload TDS**. Confirm AI
+   extraction succeeds against staging and the resulting file appears under the
+   `tds-files` private bucket in Supabase Storage.
+5. Verify readiness at
+   `https://kamdhenu-server-staging.onrender.com/api/health/ready` and expect
+   HTTP 200.
+
+The OAuth, Render, and Supabase dashboard checks in steps 2–4 require access to
+those deployed services and credentials; they cannot be completed locally.
+
+For the short operational runbook, see [`docs/STAGING.md`](../docs/STAGING.md).
+
 ## Scripts
 
 | Command | What it does |
@@ -38,6 +129,7 @@ curl http://localhost:4000/api/health
 | `npm run dev` | Start with `tsx watch` (reloads on change) |
 | `npm run build` | Type-check and emit to `dist/` |
 | `npm start` | Run the compiled server (`dist/server.js`) |
+| `npm run start:prod` | Apply committed migrations, then start the compiled server |
 | `npm test` | Run the vitest suite |
 | `npm run lint` | ESLint over the repo |
 | `npm run db:migrate` | `prisma migrate dev` — create and apply a migration |
@@ -106,7 +198,9 @@ All routes are under `/api`. "RM" and "admin" require
 
 | Route | Auth | Description |
 | --- | --- | --- |
-| `GET /api/health` | — | Liveness + DB check + version |
+| `GET /api/health/live` | — | Process liveness check (no database) |
+| `GET /api/health/ready` | — | Readiness check (database connectivity) |
+| `GET /api/health` | — | Backwards-compatible readiness check |
 | `POST /api/auth/login` | — *(rate limited)* | `{ mobileNumber }` → `{ token, user }` |
 | `POST /api/auth/logout` | optional bearer | Always `204` |
 | `GET /api/auth/me` | RM | `{ user }` |

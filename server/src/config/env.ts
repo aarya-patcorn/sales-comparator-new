@@ -85,7 +85,7 @@ const envSchema = z.object({
   OPENAI_API_KEY: optionalString,
   OPENAI_MODEL: z.string().min(1).default("gpt-4o-mini"),
   // Supabase Storage holds uploaded TDS documents. The database stays on
-  // Neon/Postgres (DATABASE_URL) — Supabase is used for the bucket only.
+  // Managed Postgres (DATABASE_URL) — Supabase is used for the bucket only.
   SUPABASE_URL: optionalString,
   /** Server-side secret. Never expose to the admin SPA or the mobile app. */
   SUPABASE_SERVICE_ROLE_KEY: optionalString,
@@ -108,6 +108,14 @@ const envSchema = z.object({
  * TDS on the next deploy.
  */
 const envSchemaWithRules = envSchema.superRefine((value, ctx) => {
+  if (value.APP_ENV !== "development" && !process.env.PORT) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["PORT"],
+      message: "PORT must be provided outside development (Render supplies it automatically)",
+    });
+  }
+
   if (value.APP_ENV === "development") return;
 
   for (const key of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const) {

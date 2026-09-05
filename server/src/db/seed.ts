@@ -555,11 +555,18 @@ async function seedAdmins(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  logger.info("Seeding database…");
+  logger.info({ appEnv: env.APP_ENV }, "Seeding database…");
 
-  await seedCatalog();
-  await seedProducts();
-  await seedCompetitors();
+  if (env.APP_ENV === "development") {
+    await seedCatalog();
+    await seedProducts();
+    await seedCompetitors();
+  } else {
+    // Staging/production must never receive sample catalogue data.
+    logger.info("Skipping sample catalog and competitor seed outside development");
+  }
+
+  // The allow-list is safe to upsert at every boot and enables Google sign-in.
   await seedAdmins();
 
   logger.info(counts, "Seed complete");

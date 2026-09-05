@@ -19,7 +19,11 @@ import {
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { catalogRouter } from "./modules/catalog/catalog.routes.js";
 import { compareRouter } from "./modules/compare/compare.routes.js";
-import { getHealth } from "./modules/health.controller.js";
+import {
+  getHealth,
+  getLiveness,
+  getReadiness,
+} from "./modules/health.controller.js";
 import { recommendRouter } from "./modules/recommend/recommend.routes.js";
 import { tdsExtractRouter } from "./modules/tds-extract/tdsExtract.routes.js";
 
@@ -84,6 +88,8 @@ export function createApp(): Express {
 
   // ---- route map (blueprint §7) ----
   app.get("/api/health", getHealth);
+  app.get("/api/health/live", getLiveness);
+  app.get("/api/health/ready", getReadiness);
 
   app.post("/api/auth/login", authLimiter);
   app.post("/api/admin/auth/google", authLimiter);
