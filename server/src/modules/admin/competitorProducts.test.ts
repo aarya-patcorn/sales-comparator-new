@@ -79,17 +79,17 @@ afterAll(async () => {
 });
 
 describe("extraction schema", () => {
-  it("forces exactly the canonical keys, nullable, no extras", () => {
+  it("forces exactly the 20 canonical keys, nullable, no extras", () => {
     const schema = buildExtractionSchema() as {
       required: string[];
       additionalProperties: boolean;
       properties: Record<string, { type: string[] }>;
     };
 
-    expect(schema.required).toHaveLength(21);
+    expect(schema.required).toHaveLength(20);
     expect(schema.additionalProperties).toBe(false);
     expect(schema.properties.open_time.type).toEqual(["string", "null"]);
-    expect(Object.keys(schema.properties)).toHaveLength(21);
+    expect(Object.keys(schema.properties)).toHaveLength(20);
   });
 });
 

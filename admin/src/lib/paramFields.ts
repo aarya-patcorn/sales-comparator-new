@@ -10,7 +10,6 @@ export const PARAM_FIELDS = [
   ["slip_resistance", "Slip Resistance"],
   ["shear_adhesion_dry", "Shear Adhesion (Dry)"],
   ["shear_adhesion_wet", "Shear Adhesion (Wet)"],
-  ["deformability_s2", "Deformability (S2)"],
   ["mixing_ratio", "Mixing Ratio (powder:water)"],
   ["coverage", "Coverage"],
   ["setting_time", "Setting Time"],

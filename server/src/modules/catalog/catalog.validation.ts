@@ -15,9 +15,3 @@ export const tileTypesQuerySchema = z
   .strict();
 
 export type TileTypesQuery = z.infer<typeof tileTypesQuerySchema>;
-
-export const competitorsQuerySchema = z
-  .object({
-    competes_with: z.enum(["K50", "K60", "K80", "K90", "KX"]).optional(),
-  })
-  .strict();

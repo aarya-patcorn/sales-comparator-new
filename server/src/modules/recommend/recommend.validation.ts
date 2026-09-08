@@ -13,7 +13,7 @@ export const recommendSchema = z
     substrateId: slugSchema,
     tileTypeId: slugSchema,
     tileSize: z.string().trim().min(1, "tileSize is required").max(64),
-    area: z.string().trim().min(1, "area is required").max(64)
+    area: slugSchema,
   })
   .strict();
 
