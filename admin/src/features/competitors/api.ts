@@ -25,6 +25,7 @@ export type CompetitorProduct = {
   competitorName?: string
   name: string
   enClassification: string | null
+  competesWith: "K50" | "K60" | "K80" | "K90" | "KX" | null
   specSource: "tds_ai" | "manual"
   tdsFileUrl: string | null
   tdsFileName: string | null
@@ -38,6 +39,7 @@ export type CompetitorProductInput = {
   competitorId: string
   name: string
   enClassification: string | null
+  competesWith: "K50" | "K60" | "K80" | "K90" | "KX" | null
   technicalParams: TechnicalParams
 }
 
@@ -172,6 +174,7 @@ export function useCreateCompetitorProduct() {
       formData.set("competitorId", input.competitorId)
       formData.set("name", input.name)
       formData.set("enClassification", input.enClassification ?? "")
+      formData.set("competesWith", input.competesWith ?? "")
       formData.set("technicalParams", JSON.stringify(input.technicalParams))
 
       return apiUpload<{ competitorProduct: CompetitorProduct }>(

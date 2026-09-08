@@ -63,14 +63,18 @@ export function listActiveProducts(): Promise<Product[]> {
  * competitor_products (blueprint §10, defect #1: comparisons must never read a
  * hardcoded array).
  */
-export function listCompetitorsWithProducts(): Promise<
+export function listCompetitorsWithProducts(competesWith?: string): Promise<
   (Competitor & { products: CompetitorProduct[] })[]
 > {
   return prisma.competitor.findMany({
     where: { isActive: true, deletedAt: null },
     include: {
       products: {
-        where: { isActive: true, deletedAt: null },
+        where: {
+          isActive: true,
+          deletedAt: null,
+          ...(competesWith === undefined ? {} : { competesWith }),
+        },
         orderBy: [{ name: "asc" }],
       },
     },

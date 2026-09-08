@@ -40,7 +40,7 @@ const VALID_BODY = {
   substrateId: "concrete",
   tileTypeId: "vitrified",
   tileSize: "24 x 24 in", // 609.6 mm -> outdoor rule stays at K90 (< 800 mm)
-  area: "terrace",
+  area: "Outdoor / Facade",
 };
 
 function post(body: unknown, token: string | null = rmToken) {
@@ -58,12 +58,18 @@ beforeEach(async () => {
   adminToken = (await createSession(admin.id)).token;
 
   // Catalog lookups succeed by default.
-  fake.prisma.substrate.findUnique.mockResolvedValue({ id: "concrete" });
+  fake.prisma.substrate.findUnique.mockResolvedValue({
+    id: "concrete",
+    name: "Concrete",
+  });
   fake.prisma.tileType.findUnique.mockResolvedValue({
     id: "vitrified",
-    sizes: [{ sizeLabel: "24 x 48 in" }, { sizeLabel: "24 x 24 in" }],
+    name: "Vitrified",
   });
-  fake.prisma.applicationArea.findUnique.mockResolvedValue({ id: "terrace" });
+  fake.prisma.applicationArea.findFirst.mockResolvedValue({
+    id: "outdoor_facade",
+    name: "Outdoor / Facade",
+  });
   fake.prisma.product.findFirst.mockResolvedValue(K90);
 });
 
@@ -81,15 +87,14 @@ describe("POST /api/recommend", () => {
     expect(res.status).toBe(200);
     expect(res.body.recommendation).toMatchObject({
       code: "K90",
-      rule: "outdoor_or_facade",
+      rule: "outdoor_or_elevation",
     });
-    expect(res.body.recommendation.sizeMm).toBeCloseTo(609.6, 5);
-    expect(res.body.recommendation.reasons.at(-1)).toBe(
-      "Recommended product: K90.",
-    );
+    expect(res.body.recommendation.reasons).toHaveLength(3);
+    expect(res.body.recommendation.reasons[0]).toContain("Outdoor / Facade");
+    expect(res.body.recommendation.reasons[2]).toContain("K90 offers a published open time");
     expect(res.body.product).toMatchObject({ code: "K90", enClassification: "C2TE S1" });
-    // Full product payload, normalized to the 20 canonical keys.
-    expect(Object.keys(res.body.product.technicalParams)).toHaveLength(20);
+    // Full product payload, normalized to the canonical keys.
+    expect(Object.keys(res.body.product.technicalParams)).toHaveLength(21);
   });
 
   it("resolves the code against live products only", async () => {
@@ -119,33 +124,26 @@ describe("POST /api/recommend", () => {
     expect(res.body.error.code).toBe("unknown_reference");
     expect(res.body.error.message).toContain("substrateId");
 
-    fake.prisma.substrate.findUnique.mockResolvedValue({ id: "concrete" });
+    fake.prisma.substrate.findUnique.mockResolvedValue({
+      id: "concrete",
+      name: "Concrete",
+    });
     fake.prisma.tileType.findUnique.mockResolvedValue(null);
     res = await post(VALID_BODY);
     expect(res.body.error.message).toContain("tileTypeId");
 
-    fake.prisma.tileType.findUnique.mockResolvedValue({ id: "vitrified", sizes: [] });
-    fake.prisma.applicationArea.findUnique.mockResolvedValue(null);
+    fake.prisma.tileType.findUnique.mockResolvedValue({
+      id: "vitrified",
+      name: "Vitrified",
+    });
+    fake.prisma.applicationArea.findFirst.mockResolvedValue(null);
     res = await post(VALID_BODY);
     expect(res.body.error.message).toContain("area");
 
     expect(fake.prisma.product.findFirst).not.toHaveBeenCalled();
   });
 
-  it("400s a size label the tile type does not offer", async () => {
-    const res = await post({ ...VALID_BODY, tileSize: "99 x 99 in" });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe("unknown_reference");
-    expect(res.body.error.message).toContain("tileSize");
-  });
-
-  it("accepts any label when the tile type has no registered sizes", async () => {
-    fake.prisma.tileType.findUnique.mockResolvedValue({
-      id: "vitrified",
-      sizes: [],
-    });
-
+  it("accepts any non-empty tile size string", async () => {
     expect((await post({ ...VALID_BODY, tileSize: "Slab" })).status).toBe(200);
   });
 

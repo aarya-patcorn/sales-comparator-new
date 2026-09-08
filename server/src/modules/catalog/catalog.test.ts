@@ -69,6 +69,7 @@ const competitorRow = {
       competitorId: "22222222-2222-4222-8222-222222222222",
       name: "ExampleFix Standard",
       enClassification: "C1T",
+      competesWith: "K50",
       technicalParams: { color: "Grey" },
       specSource: "manual" as const,
       tdsFileUrl: null,
@@ -238,13 +239,13 @@ describe("GET /api/catalog/kamdhenu", () => {
     expect(res.body).toEqual({ products: [] });
   });
 
-  it("normalizes technical params to the 20 canonical keys", async () => {
+  it("normalizes technical params to the canonical keys", async () => {
     fake.prisma.product.findMany.mockResolvedValue([productRow]);
 
     const res = await get("/api/catalog/kamdhenu");
     const params = res.body.products[0].technicalParams;
 
-    expect(Object.keys(params)).toHaveLength(20);
+    expect(Object.keys(params)).toHaveLength(21);
     expect(params.open_time).toBe("20-30 minutes");
     expect(params.color).toBeNull(); // missing -> null
     expect(params).not.toHaveProperty("legacy_key"); // unknown -> dropped
@@ -293,6 +294,31 @@ describe("GET /api/catalog/competitors", () => {
     });
   });
 
+  it("filters products by their competing Kamdhenu code", async () => {
+    fake.prisma.competitor.findMany.mockResolvedValue([competitorRow]);
+
+    const res = await get("/api/catalog/competitors?competes_with=K90");
+
+    expect(res.status).toBe(200);
+    expect(fake.prisma.competitor.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          products: expect.objectContaining({
+            where: { isActive: true, deletedAt: null, competesWith: "K90" },
+          }),
+        }),
+      }),
+    );
+  });
+
+  it("rejects an unknown competes_with filter", async () => {
+    const res = await get("/api/catalog/competitors?competes_with=K70");
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("validation_error");
+    expect(fake.prisma.competitor.findMany).not.toHaveBeenCalled();
+  });
+
   it("exposes spec_source but not the raw AI extraction or file url", async () => {
     fake.prisma.competitor.findMany.mockResolvedValue([competitorRow]);
 
@@ -301,6 +327,7 @@ describe("GET /api/catalog/competitors", () => {
 
     expect(product.specSource).toBe("manual");
     expect(Object.keys(product).sort()).toEqual([
+      "competesWith",
       "enClassification",
       "id",
       "name",
@@ -308,15 +335,16 @@ describe("GET /api/catalog/competitors", () => {
       "technicalParams",
     ]);
     expect(JSON.stringify(res.body)).not.toContain("raw ai output");
+    expect(product.competesWith).toBe("K50");
   });
 
-  it("returns 20 canonical keys per competitor product", async () => {
+  it("returns canonical keys per competitor product", async () => {
     fake.prisma.competitor.findMany.mockResolvedValue([competitorRow]);
 
     const res = await get("/api/catalog/competitors");
     const params = res.body.competitors[0].products[0].technicalParams;
 
-    expect(Object.keys(params)).toHaveLength(20);
+    expect(Object.keys(params)).toHaveLength(21);
     expect(params.color).toBe("Grey");
     expect(params.open_time).toBeNull();
   });

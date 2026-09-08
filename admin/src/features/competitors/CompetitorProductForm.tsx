@@ -24,6 +24,13 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   type CompetitorProduct,
@@ -42,6 +49,7 @@ import {
 const detailsSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(200),
   enClassification: z.string().trim().max(64),
+  competesWith: z.enum(["none", "K50", "K60", "K80", "K90", "KX"]),
 })
 
 type DetailsFormValues = z.infer<typeof detailsSchema>
@@ -108,6 +116,7 @@ function ProductFormContent({
     defaultValues: {
       name: product?.name ?? "",
       enClassification: product?.enClassification ?? "",
+      competesWith: product?.competesWith ?? "none",
     },
   })
   const extractTds = useTdsExtraction()
@@ -152,6 +161,7 @@ function ProductFormContent({
       {
         name: values.name.trim(),
         enClassification: values.enClassification.trim() || null,
+        competesWith: values.competesWith === "none" ? null : values.competesWith,
         // These are the values the admin reviewed, not raw AI output.
         technicalParams,
       },
@@ -184,6 +194,29 @@ function ProductFormContent({
                   <FormControl>
                     <Input placeholder="Product name" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="competesWith"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Competes with</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Kamdhenu product" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {(["K50", "K60", "K80", "K90", "KX"] as const).map((code) => (
+                        <SelectItem key={code} value={code}>{code}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

@@ -89,6 +89,18 @@ describe("CORS", () => {
   });
 });
 
+describe("API caching", () => {
+  it("does not send ETags or return a conditional 304 response", async () => {
+    const res = await request(app)
+      .get("/api/health")
+      .set("If-None-Match", '"cached"');
+
+    expect(res.status).toBe(200);
+    expect(res.headers.etag).toBeUndefined();
+    expect(res.body.status).toBe("ok");
+  });
+});
+
 describe("security headers", () => {
   it("sets helmet defaults and hides the framework", async () => {
     const res = await request(app).get("/api/health");

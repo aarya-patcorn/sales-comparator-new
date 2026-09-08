@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 
 import { prisma } from "../../db/client.js";
 import { logger } from "../../lib/logger.js";
+import { isOpenAiConfigured } from "../../lib/openaiClient.js";
 import { hashSpecs } from "../../lib/specHash.js";
 import { HttpError, parseOrThrow } from "../../middleware/errorHandler.js";
 import { coerceTechnicalParams } from "../../validation/technicalParams.js";
@@ -93,17 +94,6 @@ export async function postPitch(req: Request, res: Response): Promise<void> {
     variant,
   ].join("|");
 
-  const cached = await readPitchCache(cacheKey);
-  if (cached) {
-    res.status(200).json({
-      lines: cached.lines,
-      variant,
-      isFallback: cached.isFallback,
-      cached: true,
-    });
-    return;
-  }
-
   const context: PitchContext = {
     productCode: product.code,
     productName: product.name,
@@ -115,6 +105,32 @@ export async function postPitch(req: Request, res: Response): Promise<void> {
     competitorParams,
     variant,
   };
+
+  // Do not serve stale AI copy after AI configuration is removed. A short-lived,
+  // labelled fallback makes the degraded mode explicit and retryable.
+  if (!isOpenAiConfigured()) {
+    const lines = buildPitchFallback(context);
+    await writePitchCache(cacheKey, lines, true);
+    res.status(200).json({
+      lines,
+      variant,
+      isFallback: true,
+      cached: false,
+      warning: "OPENAI_API_KEY is not configured; showing fallback pitch lines",
+    });
+    return;
+  }
+
+  const cached = await readPitchCache(cacheKey);
+  if (cached) {
+    res.status(200).json({
+      lines: cached.lines,
+      variant,
+      isFallback: cached.isFallback,
+      cached: true,
+    });
+    return;
+  }
 
   let lines: string[];
   let isFallback = false;

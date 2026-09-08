@@ -190,6 +190,7 @@ export function createFakePrisma() {
     applicationArea: {
       findMany: vi.fn(() => Promise.resolve([])),
       findUnique: vi.fn(() => Promise.resolve(null)),
+      findFirst: vi.fn(() => Promise.resolve(null)),
     },
     product: {
       findMany: vi.fn(() => Promise.resolve([])),

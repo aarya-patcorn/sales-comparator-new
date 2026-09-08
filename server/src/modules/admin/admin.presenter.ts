@@ -60,6 +60,7 @@ export function toAdminCompetitorProductDto(
     competitorName: row.competitor?.name,
     name: row.name,
     enClassification: row.enClassification,
+    competesWith: row.competesWith,
     specSource: row.specSource,
     tdsFileUrl: row.tdsFileUrl,
     tdsFileName: row.tdsFileName,

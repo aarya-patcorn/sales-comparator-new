@@ -6,7 +6,7 @@ import { detectAdvantage } from "../compare/advantage.js";
  * Bump when the wording or output contract changes: the version is part of the
  * cache key, so old copy is retired automatically.
  */
-export const PITCH_PROMPT_VERSION = "pitch-v1";
+export const PITCH_PROMPT_VERSION = "pitch-v2";
 export const LETTER_PROMPT_VERSION = "letter-v1";
 
 export const PITCH_VARIANTS = [
@@ -77,6 +77,7 @@ export function buildPitchPrompt(context: PitchContext): {
     ...SHARED_RULES,
     "Return at most 3 lines. Each line must be one sentence of at most 22 words.",
     "Each line must be usable verbatim in conversation with a customer.",
+    "Focus every line on the requested angle; do not use generic talking points from another angle.",
   ].join("\n");
 
   const input = [
@@ -103,7 +104,9 @@ export function buildPitchPrompt(context: PitchContext): {
  * Every sentence is traceable to a value in the database.
  */
 export function buildPitchFallback(context: PitchContext): string[] {
-  const lines: string[] = [];
+  const lines: string[] = [
+    `Focus this discussion on ${VARIANT_BRIEF[context.variant]}.`,
+  ];
 
   const advantageKeys = (Object.keys(context.productParams) as ParamKey[]).filter(
     (key) =>
@@ -118,15 +121,23 @@ export function buildPitchFallback(context: PitchContext): string[] {
     );
   }
 
-  if (context.productEnClassification) {
+  if (lines.length < 3 && context.productEnClassification) {
     lines.push(
       `${context.productCode} is declared as ${context.productEnClassification} on its datasheet.`,
     );
   }
 
-  lines.push(
-    `Compare ${context.productCode} against ${context.competitorProductName} on the specification sheet — every figure shown is taken from the published datasheets.`,
-  );
+  if (lines.length < 3) {
+    lines.push(
+      `Compare ${context.productCode} against ${context.competitorProductName} on the specification sheet — every figure shown is taken from the published datasheets.`,
+    );
+  }
+
+  if (lines.length < 3) {
+    lines.push(
+      `${context.productCode} and ${context.competitorProductName} should be reviewed against their published technical specifications.`,
+    );
+  }
 
   return lines.slice(0, 3);
 }

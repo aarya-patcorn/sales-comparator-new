@@ -16,7 +16,10 @@ import {
   listTileTypes,
   substrateExists,
 } from "./catalog.service.js";
-import { tileTypesQuerySchema } from "./catalog.validation.js";
+import {
+  competitorsQuerySchema,
+  tileTypesQuerySchema,
+} from "./catalog.validation.js";
 
 export async function getSubstrates(
   _req: Request,
@@ -62,10 +65,14 @@ export async function getKamdhenuProducts(
 }
 
 export async function getCompetitors(
-  _req: Request,
+  req: Request,
   res: Response,
 ): Promise<void> {
-  const rows = await listCompetitorsWithProducts();
+  const { competes_with: competesWith } = parseOrThrow(
+    competitorsQuerySchema,
+    req.query,
+  );
+  const rows = await listCompetitorsWithProducts(competesWith);
 
   res.status(200).json({ competitors: rows.map(toCompetitorDto) });
 }

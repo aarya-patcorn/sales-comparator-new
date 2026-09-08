@@ -36,6 +36,7 @@ enum UserRole {
 model Substrate {
   id        String   @id // stable slug e.g. 'concrete'
   name      String
+  description String?
   sortOrder Int      @default(0) @map("sort_order")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
@@ -48,6 +49,7 @@ model TileType {
   id        String   @id // 'vitrified'
   name      String
   category  String? // porcelain / ceramic / natural_stone ...
+  description String?
   sortOrder Int      @default(0) @map("sort_order")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
@@ -95,6 +97,8 @@ model Product {
   code             String // 'K90'
   name             String
   description      String?
+  tagline          String?
+  isType           String?    @map("is_type")
   enClassification String?    @map("en_classification") // 'C2TE S1' etc.
   applicationAreas String[]   @default([]) @map("application_areas")
   technicalParams  Json       @default("{}") @map("technical_params") @db.JsonB // canonical 20-field set (§3)
@@ -139,6 +143,7 @@ model CompetitorProduct {
   competitorId     String     @map("competitor_id") @db.Uuid
   name             String
   enClassification String?    @map("en_classification")
+  competesWith     String?    @map("competes_with") // Kamdhenu code this competitor product competes with
   technicalParams  Json       @default("{}") @map("technical_params") @db.JsonB // final, admin-confirmed 20-field set
   specSource       SpecSource @map("spec_source")
   tdsFileUrl       String?    @map("tds_file_url") // object-storage reference (null if manual)

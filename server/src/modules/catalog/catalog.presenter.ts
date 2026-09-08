@@ -59,6 +59,8 @@ export type ProductDto = {
   code: string;
   name: string;
   description: string | null;
+  tagline: string | null;
+  isType: string | null;
   enClassification: string | null;
   applicationAreas: string[];
   technicalParams: TechnicalParams;
@@ -70,6 +72,8 @@ export function toProductDto(row: Product): ProductDto {
     code: row.code,
     name: row.name,
     description: row.description,
+    tagline: row.tagline,
+    isType: row.isType,
     enClassification: row.enClassification,
     applicationAreas: row.applicationAreas,
     technicalParams: coerceTechnicalParams(row.technicalParams),
@@ -80,6 +84,7 @@ export type CompetitorProductDto = {
   id: string;
   name: string;
   enClassification: string | null;
+  competesWith: string | null;
   /** Tells the UI whether the specs came from a TDS or manual entry (§7). */
   specSource: SpecSource;
   technicalParams: TechnicalParams;
@@ -92,6 +97,7 @@ export function toCompetitorProductDto(
     id: row.id,
     name: row.name,
     enClassification: row.enClassification,
+    competesWith: row.competesWith,
     specSource: row.specSource,
     technicalParams: coerceTechnicalParams(row.technicalParams),
   };

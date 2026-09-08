@@ -150,7 +150,7 @@ describe("POST /api/pitch", () => {
     );
 
     expect(key).toBe(
-      `K90|example_adhesives:${COMPETITOR_PRODUCT_ID}|${expectedHash}|pitch-v1|durability`,
+      `K90|example_adhesives:${COMPETITOR_PRODUCT_ID}|${expectedHash}|pitch-v2|durability`,
     );
   });
 
@@ -256,6 +256,20 @@ describe("POST /api/pitch", () => {
     const ttl = upsert.create.expiresAt.getTime() - Date.now();
     expect(ttl).toBeGreaterThan(0);
     expect(ttl).toBeLessThanOrEqual(FALLBACK_TTL_MS);
+  });
+
+  it("uses variant-specific fallback lines", async () => {
+    responsesCreate.mockRejectedValue(new Error("openai is down"));
+
+    const durability = await post("/api/pitch", PITCH_BODY);
+    const standards = await post("/api/pitch", {
+      ...PITCH_BODY,
+      variant: "standards",
+    });
+
+    expect(durability.body.lines[0]).not.toBe(standards.body.lines[0]);
+    expect(durability.body.isFallback).toBe(true);
+    expect(standards.body.isFallback).toBe(true);
   });
 
   it("falls back rather than failing when the model returns nothing usable", async () => {

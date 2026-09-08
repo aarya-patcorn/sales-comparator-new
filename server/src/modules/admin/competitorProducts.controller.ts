@@ -135,6 +135,7 @@ export async function postCompetitorProduct(
       competitorId: input.competitorId,
       name: input.name,
       enClassification: input.enClassification,
+      competesWith: input.competesWith,
       // Always the confirmed body values, never the model's.
       technicalParams: input.technicalParams,
       specSource,

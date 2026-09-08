@@ -71,6 +71,8 @@ export function createApp(): Express {
   const app = express();
 
   app.disable("x-powered-by");
+  // Mobile clients must always receive a JSON body from API requests.
+  app.set("etag", false);
   app.set("trust proxy", trustProxySetting());
 
   app.use(helmet());

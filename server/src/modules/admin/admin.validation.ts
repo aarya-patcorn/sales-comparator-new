@@ -119,6 +119,12 @@ export const updateCompetitorProductSchema = z
       .max(64)
       .nullish()
       .transform((v) => (v === undefined || v === "" ? null : v)),
+    competesWith: z
+      .enum(["K50", "K60", "K80", "K90", "KX"])
+      .or(z.literal(""))
+      .nullable()
+      .optional()
+      .transform((v) => v === "" ? null : v),
     technicalParams: technicalParamsSchema.optional(),
   })
   .strict();

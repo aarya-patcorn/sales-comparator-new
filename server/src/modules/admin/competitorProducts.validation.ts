@@ -3,6 +3,12 @@ import { z } from "zod";
 import { uuidSchema } from "../../validation/common.js";
 import { technicalParamsSchema } from "../../validation/technicalParams.js";
 
+const competesWithSchema = z
+  .enum(["K50", "K60", "K80", "K90", "KX"])
+  .or(z.literal(""))
+  .nullish()
+  .transform((value) => value || null);
+
 /**
  * Both creation modes post the same fields; the presence of an uploaded file is
  * what selects `spec_source`.
@@ -21,6 +27,7 @@ export const createCompetitorProductSchema = z
       .max(64)
       .nullish()
       .transform((value) => (value === undefined || value === "" ? null : value)),
+    competesWith: competesWithSchema,
     technicalParams: technicalParamsSchema,
   })
   .strict();
