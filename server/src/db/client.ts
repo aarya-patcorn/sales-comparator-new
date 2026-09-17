@@ -14,9 +14,15 @@ const globalForPrisma = globalThis as unknown as {
   __prisma?: PrismaClient;
 };
 
-function createPrismaClient(): PrismaClient {
+/**
+ * Creates a Prisma client for the supplied Postgres connection. Node uses
+ * DATABASE_URL; the Worker supplies Hyperdrive's connection string at startup.
+ */
+export function createPrismaClient(
+  connectionString = env.DATABASE_URL,
+): PrismaClient {
   // Prisma 7 talks to Postgres through a driver adapter (node-postgres).
-  const adapter = new PrismaPg({ connectionString: env.DATABASE_URL });
+  const adapter = new PrismaPg({ connectionString });
 
   return new PrismaClient({
     adapter,
