@@ -222,7 +222,7 @@ All routes are under `/api`. "RM" and "admin" require
 | `GET POST /api/admin/admins` · `PATCH /:id/status` | admin | Administrator allow-list |
 | `GET POST /api/admin/products` · `GET PUT DELETE /:id` · `PATCH /:id/status` | admin | Kamdhenu products (**soft** delete) |
 | `GET POST /api/admin/competitors` · `PUT DELETE /:id` · `PATCH /:id/status` | admin | Competitors (**soft**, cascades) |
-| `GET POST /api/admin/competitor-products` · `GET PUT DELETE /:id` · `PATCH /:id/status` | admin | Competitor products (**soft**) |
+| `GET POST /api/admin/competitor-products` · `GET PUT DELETE /:id` · `PATCH![alt text](image.png) /:id/status` | admin | Competitor products (**soft**) |
 
 List endpoints accept `?page=&pageSize=&search=&isActive=` (`pageSize` capped at
 100) and return a `pagination` object.

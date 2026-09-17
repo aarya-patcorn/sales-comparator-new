@@ -306,6 +306,18 @@ export async function updateCompetitorProduct(
 
   const existing = await findCompetitorProductOr404(id);
 
+  if (input.competesWith) {
+    const product = await prisma.product.findFirst({
+      where: { code: input.competesWith, isActive: true, deletedAt: null },
+      select: { id: true },
+    });
+    if (!product) {
+      throw new HttpError(400, "unknown_reference", `Unknown Kamdhenu product '${input.competesWith}'`, [
+        { path: "competesWith", message: "not found" },
+      ]);
+    }
+  }
+
   if (input.name && input.name !== existing.name) {
     const clash = await prisma.competitorProduct.findFirst({
       where: {

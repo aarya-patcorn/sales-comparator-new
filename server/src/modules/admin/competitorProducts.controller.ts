@@ -22,6 +22,7 @@ function toDto(row: CompetitorProduct) {
     competitorId: row.competitorId,
     name: row.name,
     enClassification: row.enClassification,
+    competesWith: row.competesWith,
     specSource: row.specSource,
     // The stored PATH, not a URL. Callers that need a downloadable link ask
     // for a signed URL at read time (see getCompetitorProduct).
@@ -66,6 +67,18 @@ export async function postCompetitorProduct(
       `Unknown or inactive competitor '${input.competitorId}'`,
       [{ path: "competitorId", message: "not found" }],
     );
+  }
+
+  if (input.competesWith) {
+    const product = await prisma.product.findFirst({
+      where: { code: input.competesWith, isActive: true, deletedAt: null },
+      select: { id: true },
+    });
+    if (!product) {
+      throw new HttpError(400, "unknown_reference", `Unknown Kamdhenu product '${input.competesWith}'`, [
+        { path: "competesWith", message: "not found" },
+      ]);
+    }
   }
 
   // Mirrors the partial unique index uq_comp_products_name_active.
@@ -135,6 +148,7 @@ export async function postCompetitorProduct(
       competitorId: input.competitorId,
       name: input.name,
       enClassification: input.enClassification,
+      competesWith: input.competesWith,
       // Always the confirmed body values, never the model's.
       technicalParams: input.technicalParams,
       specSource,

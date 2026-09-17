@@ -14,6 +14,7 @@ export const recommendSchema = z
     tileTypeId: slugSchema,
     tileSize: z.string().trim().min(1, "tileSize is required").max(64),
     area: slugSchema,
+    installationSuitability: z.enum(["indoor", "outdoor"]),
   })
   .strict();
 

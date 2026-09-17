@@ -230,6 +230,16 @@ describe("POST /api/admin/competitor-products", () => {
       const data = fake.prisma.competitorProduct.create.mock.calls[0]?.[0].data;
       expect(data.createdBy).toBe([...fake.users.values()][0]?.id);
     });
+
+    it("stores the Kamdhenu product selected for automatic matching", async () => {
+      fake.prisma.product.findFirst.mockResolvedValue({ id: "kamdhenu-product-id" });
+
+      const res = await create().send({ ...MANUAL_BODY, competesWith: "K90" });
+
+      expect(res.status).toBe(201);
+      expect(res.body.competitorProduct.competesWith).toBe("K90");
+      expect(fake.prisma.competitorProduct.create.mock.calls[0]?.[0].data.competesWith).toBe("K90");
+    });
   });
 
   describe("mode (a): multipart with a TDS", () => {

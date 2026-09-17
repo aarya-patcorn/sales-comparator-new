@@ -108,6 +108,7 @@ export type RecommendInput = {
   tileTypeId: string;
   tileSize: string;
   area: string;
+  installationSuitability: "indoor" | "outdoor";
 };
 
 export type Recommendation = {
@@ -172,7 +173,7 @@ export function recommendForSizeMm(
   sizeMm: number,
   reasons: string[],
 ): { code: ProductCode; rule: RecommendationRule } {
-  const { substrateId, tileTypeId, area } = input;
+  const { substrateId, tileTypeId, area, installationSuitability } = input;
 
   // 1. Difficult / flexible substrates.
   if (DIFFICULT_SUBSTRATES.has(substrateId)) {
@@ -198,9 +199,11 @@ export function recommendForSizeMm(
   }
 
   // 3. Outdoor and facade.
-  if (OUTDOOR_AREAS.has(area)) {
+  if (installationSuitability === "outdoor" || OUTDOOR_AREAS.has(area)) {
     reasons.push(
-      `Area '${area}' is exposed to weather and thermal movement.`,
+      installationSuitability === "outdoor"
+        ? "Outdoor installation requires resistance to weather and thermal movement."
+        : `Area '${area}' is exposed to weather and thermal movement.`,
     );
 
     if (atLeast(sizeMm, SIZE_THRESHOLDS.OUTDOOR_KX)) {

@@ -79,6 +79,10 @@ const productCodeSchema = z
   .max(32)
   .regex(/^[A-Za-z0-9_-]+$/, "must be a product code such as 'K90'");
 
+const optionalProductCodeSchema = productCodeSchema
+  .nullish()
+  .transform((value) => (value === undefined || value === "" ? null : value));
+
 export const createProductSchema = z
   .object({
     code: productCodeSchema,
@@ -91,6 +95,10 @@ export const createProductSchema = z
       .nullish()
       .transform((v) => (v === undefined || v === "" ? null : v)),
     applicationAreas: z.array(slugSchema).max(50).default([]),
+    installationSuitability: z.array(z.enum(["indoor", "outdoor"])).max(2).default([]),
+    substrateIds: z.array(slugSchema).max(50).default([]),
+    tileTypeIds: z.array(slugSchema).max(50).default([]),
+    tileSizes: z.array(z.string().trim().min(1).max(64)).max(100).default([]),
     technicalParams: technicalParamsSchema,
   })
   .strict();
@@ -119,6 +127,7 @@ export const updateCompetitorProductSchema = z
       .max(64)
       .nullish()
       .transform((v) => (v === undefined || v === "" ? null : v)),
+    competesWith: optionalProductCodeSchema,
     technicalParams: technicalParamsSchema.optional(),
   })
   .strict();

@@ -204,6 +204,7 @@ type ProductSeed = {
   description: string;
   enClassification: string;
   applicationAreas: readonly string[];
+  installationSuitability: readonly ("indoor" | "outdoor")[];
   technicalParams: TechnicalParams;
 };
 
@@ -226,6 +227,7 @@ const PRODUCTS: readonly ProductSeed[] = [
       "TODO: confirm — entry-level cementitious adhesive for interior ceramic tiles on concrete.",
     enClassification: "C1T",
     applicationAreas: ["living_room", "bedroom", "kitchen"],
+    installationSuitability: ["indoor"],
     technicalParams: emptyParams(),
   },
   {
@@ -235,6 +237,7 @@ const PRODUCTS: readonly ProductSeed[] = [
       "TODO: confirm — improved adhesive with extended open time for interior floors and walls.",
     enClassification: "C1TE",
     applicationAreas: ["living_room", "bedroom", "kitchen", "bathroom"],
+    installationSuitability: ["indoor"],
     technicalParams: emptyParams(),
   },
   {
@@ -244,6 +247,7 @@ const PRODUCTS: readonly ProductSeed[] = [
       "TODO: confirm — high-strength adhesive for vitrified tiles and wet areas.",
     enClassification: "C2T",
     applicationAreas: ["kitchen", "bathroom", "balcony", "terrace"],
+    installationSuitability: ["indoor", "outdoor"],
     technicalParams: emptyParams(),
   },
   {
@@ -259,6 +263,7 @@ const PRODUCTS: readonly ProductSeed[] = [
       "terrace",
       "exterior_facade",
     ],
+    installationSuitability: ["indoor", "outdoor"],
     technicalParams: emptyParams(),
   },
   {
@@ -273,6 +278,7 @@ const PRODUCTS: readonly ProductSeed[] = [
       "exterior_facade",
       "swimming_pool",
     ],
+    installationSuitability: ["indoor", "outdoor"],
     technicalParams: emptyParams(),
   },
 ];
@@ -461,6 +467,7 @@ async function seedProducts(): Promise<void> {
       description: product.description,
       enClassification: product.enClassification,
       applicationAreas: [...product.applicationAreas],
+      installationSuitability: [...product.installationSuitability],
       technicalParams: product.technicalParams,
     };
 

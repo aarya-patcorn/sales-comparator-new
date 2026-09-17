@@ -18,6 +18,7 @@ import {
 import {
   createProduct,
   deleteProduct,
+  getProductOptions,
   getProduct,
   listProducts,
   setProductStatus,
@@ -58,6 +59,7 @@ adminRouter.post("/admins", createAdminUser);
 adminRouter.patch("/admins/:id/status", setAdminUserStatus);
 
 // Kamdhenu products
+adminRouter.get("/product-options", getProductOptions);
 adminRouter.get("/products", listProducts);
 adminRouter.post("/products", createProduct);
 adminRouter.get("/products/:id", getProduct);

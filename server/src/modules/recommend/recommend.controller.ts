@@ -60,7 +60,19 @@ export async function postRecommend(
   const recommendation = recommendKamdhenu(input);
 
   const product = await prisma.product.findFirst({
-    where: { code: recommendation.code, isActive: true, deletedAt: null },
+    where: {
+      code: recommendation.code,
+      isActive: true,
+      deletedAt: null,
+      // Empty lists preserve eligibility for products created before applicability
+      // criteria were introduced. Once configured, every selected criterion must match.
+      AND: [
+        { OR: [{ substrateIds: { equals: [] } }, { substrateIds: { has: input.substrateId } }] },
+        { OR: [{ tileTypeIds: { equals: [] } }, { tileTypeIds: { has: input.tileTypeId } }] },
+        { OR: [{ tileSizes: { equals: [] } }, { tileSizes: { has: input.tileSize } }] },
+        { OR: [{ installationSuitability: { equals: [] } }, { installationSuitability: { has: input.installationSuitability } }] },
+      ],
+    },
   });
 
   if (!product) {
