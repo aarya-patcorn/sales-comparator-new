@@ -258,11 +258,19 @@ describe.skipIf(!available)("admin API (real database)", () => {
         name: "Kamdhenu K90",
         enClassification: "C2TE S1",
         applicationAreas: ["terrace"],
+        substrateIds: ["concrete", "cement_screed"],
+        tileTypeIds: ["vitrified", "porcelain"],
+        tileSizes: ["24 x 24 in", "24 x 48 in"],
         technicalParams: PARAMS,
       });
 
       expect(created.status).toBe(201);
       expect(created.body.product.technicalParams.open_time).toBe("20-30 minutes");
+      expect(created.body.product).toMatchObject({
+        substrateIds: ["concrete", "cement_screed"],
+        tileTypeIds: ["vitrified", "porcelain"],
+        tileSizes: ["24 x 24 in", "24 x 48 in"],
+      });
 
       const duplicate = await auth("post", "/api/admin/products").send({
         code: "K90",

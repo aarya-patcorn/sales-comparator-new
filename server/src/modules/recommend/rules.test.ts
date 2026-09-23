@@ -15,6 +15,7 @@ const BASE: RecommendInput = {
   tileTypeId: "ceramic_floor",
   tileSize: "12 x 12 in",
   area: "living_room",
+  installationSuitability: "indoor",
 };
 
 function rec(overrides: Partial<RecommendInput> = {}) {
@@ -111,6 +112,16 @@ describe("rule 2: pools and industrial", () => {
 
     expect(result.rule).toBe("pool_or_industrial");
     expect(result.code).toBe("KX");
+  });
+});
+
+describe("installation suitability", () => {
+  it("applies the outdoor grade for an outdoor installation", () => {
+    const result = rec({ installationSuitability: "outdoor" });
+
+    expect(result.code).toBe("K90");
+    expect(result.rule).toBe("outdoor_or_facade");
+    expect(result.reasons.join(" ")).toContain("Outdoor installation");
   });
 });
 

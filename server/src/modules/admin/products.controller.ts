@@ -6,6 +6,8 @@ import { HttpError, parseOrThrow } from "../../middleware/errorHandler.js";
 import { omitUndefined } from "../../lib/objects.js";
 import { toSkipTake, uuidSchema } from "../../validation/common.js";
 import { invalidateAiCaches } from "../ai/cache.js";
+import { toTileTypeDto } from "../catalog/catalog.presenter.js";
+import { listTileTypes } from "../catalog/catalog.service.js";
 import { paginationMeta, toAdminProductDto } from "./admin.presenter.js";
 import {
   createProductSchema,
@@ -41,6 +43,33 @@ async function assertCodeIsFree(code: string, exceptId?: string): Promise<void> 
       `An active product with code '${code}' already exists`,
     );
   }
+}
+
+/** GET /api/admin/product-options — reference data for product applicability. */
+export async function getProductOptions(
+  _req: Request,
+  res: Response,
+): Promise<void> {
+  const [substrates, tileTypes] = await Promise.all([
+    prisma.substrate.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        tileTypes: { select: { tileTypeId: true } },
+      },
+    }),
+    listTileTypes(),
+  ]);
+
+  res.status(200).json({
+    substrates: substrates.map((substrate) => ({
+      id: substrate.id,
+      name: substrate.name,
+      tileTypeIds: substrate.tileTypes.map((mapping) => mapping.tileTypeId),
+    })),
+    tileTypes: tileTypes.map(toTileTypeDto),
+  });
 }
 
 /** GET /api/admin/products */

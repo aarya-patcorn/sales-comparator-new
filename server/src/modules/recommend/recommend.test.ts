@@ -27,6 +27,7 @@ const K90 = {
   description: "Deformable adhesive",
   enClassification: "C2TE S1",
   applicationAreas: ["terrace"],
+  installationSuitability: ["outdoor"],
   technicalParams: { open_time: "20-30 minutes" },
   isActive: true,
   deletedAt: null,
@@ -41,6 +42,7 @@ const VALID_BODY = {
   tileTypeId: "vitrified",
   tileSize: "24 x 24 in", // 609.6 mm -> outdoor rule stays at K90 (< 800 mm)
   area: "terrace",
+  installationSuitability: "outdoor",
 };
 
 function post(body: unknown, token: string | null = rmToken) {
@@ -96,7 +98,17 @@ describe("POST /api/recommend", () => {
     await post(VALID_BODY);
 
     expect(fake.prisma.product.findFirst).toHaveBeenCalledWith({
-      where: { code: "K90", isActive: true, deletedAt: null },
+      where: {
+        code: "K90",
+        isActive: true,
+        deletedAt: null,
+        AND: [
+          { OR: [{ substrateIds: { equals: [] } }, { substrateIds: { has: "concrete" } }] },
+          { OR: [{ tileTypeIds: { equals: [] } }, { tileTypeIds: { has: "vitrified" } }] },
+          { OR: [{ tileSizes: { equals: [] } }, { tileSizes: { has: "24 x 24 in" } }] },
+          { OR: [{ installationSuitability: { equals: [] } }, { installationSuitability: { has: "outdoor" } }] },
+        ],
+      },
     });
   });
 

@@ -46,6 +46,7 @@ const productRow = {
   description: "Deformable adhesive",
   enClassification: "C2TE S1",
   applicationAreas: ["kitchen", "bathroom"],
+  installationSuitability: ["indoor", "outdoor"],
   technicalParams: { open_time: "20-30 minutes", legacy_key: "ignored" },
   isActive: true,
   deletedAt: null,
@@ -67,9 +68,10 @@ const competitorRow = {
     {
       id: "33333333-3333-4333-8333-333333333333",
       competitorId: "22222222-2222-4222-8222-222222222222",
-      name: "ExampleFix Standard",
-      enClassification: "C1T",
-      technicalParams: { color: "Grey" },
+       name: "ExampleFix Standard",
+       enClassification: "C1T",
+       competesWith: "K90",
+       technicalParams: { color: "Grey" },
       specSource: "manual" as const,
       tdsFileUrl: null,
       tdsFileName: null,
@@ -261,6 +263,7 @@ describe("GET /api/catalog/kamdhenu", () => {
       "description",
       "enClassification",
       "id",
+      "installationSuitability",
       "name",
       "technicalParams",
     ]);
@@ -300,7 +303,9 @@ describe("GET /api/catalog/competitors", () => {
     const product = res.body.competitors[0].products[0];
 
     expect(product.specSource).toBe("manual");
+    expect(product.competesWith).toBe("K90");
     expect(Object.keys(product).sort()).toEqual([
+      "competesWith",
       "enClassification",
       "id",
       "name",

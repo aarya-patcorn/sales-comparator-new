@@ -3,6 +3,15 @@ import { z } from "zod";
 import { uuidSchema } from "../../validation/common.js";
 import { technicalParamsSchema } from "../../validation/technicalParams.js";
 
+const competesWithSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(32)
+  .regex(/^[A-Za-z0-9_-]+$/, "must be a Kamdhenu product code")
+  .nullish()
+  .transform((value) => (value === undefined || value === "" ? null : value));
+
 /**
  * Both creation modes post the same fields; the presence of an uploaded file is
  * what selects `spec_source`.
@@ -19,8 +28,9 @@ export const createCompetitorProductSchema = z
       .string()
       .trim()
       .max(64)
-      .nullish()
-      .transform((value) => (value === undefined || value === "" ? null : value)),
+       .nullish()
+       .transform((value) => (value === undefined || value === "" ? null : value)),
+    competesWith: competesWithSchema,
     technicalParams: technicalParamsSchema,
   })
   .strict();

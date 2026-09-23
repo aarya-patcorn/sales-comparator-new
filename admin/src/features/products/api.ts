@@ -10,6 +10,10 @@ export type Product = {
   description: string | null
   enClassification: string | null
   applicationAreas: string[]
+  installationSuitability: ("indoor" | "outdoor")[]
+  substrateIds: string[]
+  tileTypeIds: string[]
+  tileSizes: string[]
   technicalParams: Record<ParamKey, string | null>
   isActive: boolean
   createdAt: string
@@ -22,7 +26,16 @@ export type ProductInput = {
   description: string | null
   enClassification: string | null
   applicationAreas: string[]
+  installationSuitability: ("indoor" | "outdoor")[]
+  substrateIds: string[]
+  tileTypeIds: string[]
+  tileSizes: string[]
   technicalParams: TechnicalParams
+}
+
+export type ProductOptions = {
+  substrates: { id: string; name: string; tileTypeIds: string[] }[]
+  tileTypes: { id: string; name: string; sizes: string[] }[]
 }
 
 export type ProductStatusFilter = "all" | "active" | "inactive"
@@ -66,6 +79,13 @@ export function useProducts(params: ProductListParams) {
       return apiGet<ProductListResponse>(`/api/admin/products?${query}`)
     },
     placeholderData: keepPreviousData,
+  })
+}
+
+export function useProductOptions() {
+  return useQuery({
+    queryKey: [...productKeys.all, "options"],
+    queryFn: () => apiGet<ProductOptions>("/api/admin/product-options"),
   })
 }
 

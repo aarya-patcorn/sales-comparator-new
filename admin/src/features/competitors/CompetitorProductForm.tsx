@@ -24,6 +24,13 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   type CompetitorProduct,
@@ -38,10 +45,12 @@ import {
   createEmptyTechnicalParams,
   type TechnicalParams,
 } from "@/lib/paramFields"
+import { useProducts } from "@/features/products/api"
 
 const detailsSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(200),
   enClassification: z.string().trim().max(64),
+  competesWith: z.string(),
 })
 
 type DetailsFormValues = z.infer<typeof detailsSchema>
@@ -108,8 +117,10 @@ function ProductFormContent({
     defaultValues: {
       name: product?.name ?? "",
       enClassification: product?.enClassification ?? "",
+      competesWith: product?.competesWith ?? "",
     },
   })
+  const productsQuery = useProducts({ search: "", status: "active", page: 1, pageSize: 100 })
   const extractTds = useTdsExtraction()
   const [mode, setMode] = useState<CreateMode>("tds_ai")
   const [file, setFile] = useState<File | null>(null)
@@ -152,6 +163,7 @@ function ProductFormContent({
       {
         name: values.name.trim(),
         enClassification: values.enClassification.trim() || null,
+        competesWith: values.competesWith || null,
         // These are the values the admin reviewed, not raw AI output.
         technicalParams,
       },
@@ -202,6 +214,36 @@ function ProductFormContent({
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name="competesWith"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Competes with Kamdhenu product</FormLabel>
+                <Select
+                  value={field.value || "__none__"}
+                  onValueChange={(value) => field.onChange(value === "__none__" ? "" : value)}
+                  disabled={isBusy || productsQuery.isLoading}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="No automatic match" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="__none__">No automatic match</SelectItem>
+                    {(productsQuery.data?.products ?? []).map((kamdhenuProduct) => (
+                      <SelectItem key={kamdhenuProduct.id} value={kamdhenuProduct.code}>
+                        {kamdhenuProduct.code} - {kamdhenuProduct.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           {product ? (
             <div className="space-y-4">
