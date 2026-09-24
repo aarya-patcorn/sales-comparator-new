@@ -58,6 +58,17 @@ describe("technicalParamsSchema", () => {
     expect(JSON.stringify(result.error?.issues)).toContain("bond_strength");
   });
 
+  it("accepts the supplemental S1 and S2 deformation measurements", () => {
+    const parsed = technicalParamsSchema.parse({
+      ...fullParams,
+      transverse_deformation_s1: "2.5-2.7 mm",
+      deformability_s2: "≥ 3.0 mm",
+    });
+
+    expect(parsed.transverse_deformation_s1).toBe("2.5-2.7 mm");
+    expect(parsed.deformability_s2).toBe("≥ 3.0 mm");
+  });
+
   it("accepts nulls for missing specs", () => {
     const parsed = technicalParamsSchema.parse({
       ...fullParams,

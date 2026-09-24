@@ -95,7 +95,10 @@ model Product {
   code             String // 'K90'
   name             String
   description      String?
+  tagline          String?
+  isType           String?    @map("is_type")
   enClassification String?    @map("en_classification") // 'C2TE S1' etc.
+  maxTileSize               String?    @map("max_tile_size")
   applicationAreas         String[]   @default([]) @map("application_areas")
   installationSuitability  String[]   @default([]) @map("installation_suitability")
   substrateIds             String[]   @default([]) @map("substrate_ids")
@@ -142,6 +145,7 @@ model CompetitorProduct {
   id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   competitorId     String     @map("competitor_id") @db.Uuid
   name             String
+  isType           String?    @map("is_type")
   enClassification String?    @map("en_classification")
   competesWith     String?    @map("competes_with")
   technicalParams  Json       @default("{}") @map("technical_params") @db.JsonB // final, admin-confirmed 20-field set
