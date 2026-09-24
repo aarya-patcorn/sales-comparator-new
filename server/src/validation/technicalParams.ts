@@ -17,8 +17,15 @@ const shape = Object.fromEntries(
   PARAM_FIELDS.map(([key]) => [key, z.string().nullable()]),
 ) as TechnicalParamsShape;
 
-/** All 20 keys required; values are `string | null`; unknown keys are rejected. */
-export const technicalParamsSchema = z.object(shape).strict();
+/**
+ * All 20 canonical keys are required and unknown keys are rejected. The two
+ * deformation measurements are valid supplemental source fields for S1/S2 products.
+ */
+export const technicalParamsSchema = z.object({
+  ...shape,
+  transverse_deformation_s1: z.string().optional(),
+  deformability_s2: z.string().optional(),
+}).strict();
 
 export type TechnicalParams = z.infer<typeof technicalParamsSchema>;
 
@@ -26,7 +33,7 @@ export type TechnicalParams = z.infer<typeof technicalParamsSchema>;
 export function emptyParams(): TechnicalParams {
   return Object.fromEntries(
     PARAM_FIELDS.map(([key]) => [key, null]),
-  ) as TechnicalParams;
+  ) as unknown as TechnicalParams;
 }
 
 /**
@@ -54,6 +61,13 @@ export function coerceTechnicalParams(value: unknown): TechnicalParams {
   const result = emptyParams();
 
   for (const [key] of PARAM_FIELDS) {
+    const raw = source[key];
+    if (typeof raw === "string") {
+      result[key] = raw;
+    }
+  }
+
+  for (const key of ["transverse_deformation_s1", "deformability_s2"] as const) {
     const raw = source[key];
     if (typeof raw === "string") {
       result[key] = raw;
